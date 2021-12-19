@@ -1,7 +1,10 @@
 package com.example.customer.service;
 
+import com.example.clients.fraud.FraudCheckResponse;
+import com.example.clients.fraud.FraudClient;
+import com.example.clients.notification.NotificationClient;
+import com.example.clients.notification.NotificationRequest;
 import com.example.customer.dto.CustomerRegistrationRequest;
-import com.example.customer.dto.FraudCheckResponse;
 import com.example.customer.model.Customer;
 import com.example.customer.repository.CustomerRepository;
 import lombok.AllArgsConstructor;
@@ -14,6 +17,8 @@ public class CustomerService {
 
     private final CustomerRepository customerRepository;
     private final RestTemplate restTemplate;
+    private final FraudClient fraudClient;
+    private final NotificationClient notificationClient;
 
 
     public void registerCustomer(CustomerRegistrationRequest request) {
@@ -22,17 +27,15 @@ public class CustomerService {
                 .lastName(request.lastName())
                 .email(request.email())
                 .build();
-        // todo check if email valid
-        // todo check if email not taken
         customerRepository.saveAndFlush(customer);
-        FraudCheckResponse fraudCheckResponse = restTemplate.getForObject(
-                "http://FRAUD/api/v1/fraud-check/{customerId}",
-                FraudCheckResponse.class,
-                customer.getId()
-        );
+
+        FraudCheckResponse fraudCheckResponse = fraudClient.isFraudster(customer.getId());
 
         if (fraudCheckResponse.isFraudster()) {
             throw new IllegalStateException("fraudster");
         }
+
+        notificationClient.sendNotification(new NotificationRequest(customer.getId(), customer.getEmail(), "Hello " + customer.getFirstName()));
+
     }
 }

@@ -1,4 +1,4 @@
-package com.example.fraud.dto;
+package com.example.clients.fraud;
 
 public record FraudCheckResponse(
         Boolean isFraudster
